@@ -9,6 +9,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 from utils import common_baud_rates
 
 
+# Custom exceptions
+class NotSupportedError(Exception):
+    """Raised when a feature is not supported by the specific scanner model."""
+    pass
+
+
 # ------------------------
 # Abstract Scanner Class
 # ------------------------
@@ -63,12 +69,24 @@ class BaseScanner(ABC):
     def send_and_parse(self, tx_data):
         print("Sent (Raw):", tx_data, "AsHex:", binascii.hexlify(tx_data))
         self.serial_port.write(tx_data)
+
+        # Give device time to respond
+        import time
+        time.sleep(0.1)
+
         rx_data = self.serial_port.read(1024)
         print("Got (Raw):", rx_data, "AsHex:", binascii.hexlify(rx_data))
+        print(f"Received {len(rx_data)} bytes")
+
+        if len(rx_data) > 0:
+            print("Raw bytes:", [hex(b) for b in rx_data])
+
         reply, extra = self.parse_rx(rx_data)
         if reply:
             print("Reply:", reply, "AsHex:", binascii.hexlify(reply))
             print("Extra:", extra, "AsHex:", binascii.hexlify(extra))
+        else:
+            print("Parse failed - no valid reply extracted")
         return reply, extra
 
     # Placeholder command methods

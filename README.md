@@ -6,13 +6,45 @@ This script is quite chatty in the console, to let you see exactly what is going
 It is not supposed to be exhaustive, but rather to demonstrate a basic set of functionality to get you started with the device. 
 
 Supported Readers:
-* GM65 (and GM65S) 
+* GM65 (and GM65S)
 * GM805
 * M3Y-W
-  
+
 _All of the commands below first attempt to auto-detect the reader you are using..._
 
 There are also some manuals for these devices in the manuals folder of this repository.
+
+## Command Support Matrix
+
+The following table shows which commands are supported by each scanner implementation:
+
+| Command | GM65/GM805 | M3Y-W | Notes |
+|---------|------------|-------|-------|
+| **Query Commands** | | | |
+| `--hw-version` | ✅ Supported | ❌ Not Supported | M3Y-W only has firmware version |
+| `--sw-version` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--sw-year` | ✅ Supported | ❌ Not Supported | M3Y-W doesn't separate year |
+| `--get-settings` | ✅ Supported | ❌ Not Supported | M3Y-W uses individual commands |
+| **Configuration Commands** | | | |
+| `--set-settings` | ✅ Supported | ❌ Not Supported | M3Y-W uses individual commands |
+| `--save-settings` | ✅ Supported | ❌ Not Supported | M3Y-W auto-saves settings |
+| `--set-illumination` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-aimer` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-beeper` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-read-interval` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-same-barcode-delay` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-continuous-mode` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-command-mode` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--set-baudrate` | ✅ Supported | ✅ Supported | Available on all scanners |
+| **Utility Commands** | | | |
+| `--send-raw-cmd` | ✅ Supported | ✅ Supported | Available on all scanners |
+| `--test-baudrates` | ✅ Supported | ✅ Supported | Available on all scanners |
+
+**Legend:**
+- ✅ **Supported**: Command is implemented and works with this scanner
+- ❌ **Not Supported**: Command is not available for this scanner type (returns "Not Supported" message)
+
+**Note**: When a command is not supported by a scanner, the tool will display a clear "Not Supported" message rather than failing silently.
 
 # Setup
 ## Requirements

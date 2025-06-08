@@ -6,7 +6,7 @@ import os
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from base_scanner import BaseScanner
+from base_scanner import BaseScanner, NotSupportedError
 from utils import compute_bcc, check_bcc
 
 
@@ -43,6 +43,9 @@ class M3YWScanner(BaseScanner):
         return raw_data + checksum + self.etx_bytes()
 
     def parse_rx(self, data: bytes):
+        if len(data) == 0:
+            return None, b''
+
         header_len = struct.calcsize(self.rx_struct_fmt())
         try:
             header, data_len = struct.unpack(self.rx_struct_fmt(), data[:header_len])
@@ -51,13 +54,52 @@ class M3YWScanner(BaseScanner):
 
         if header.hex() in self.header_ok().decode():
             if self.check_checksum(data[header_len - 3:header_len + data_len + 1]):
-                return data[header_len:header_len + data_len], data[header_len + data_len + 2:]
+                response_data = data[header_len:header_len + data_len]
+
+                # Check for M3Y-W status codes
+                if len(response_data) == 2:
+                    status_hex = response_data.hex().upper()
+                    if status_hex == '9000':
+                        print(f"M3Y-W Status: SUCCESS (9000)")
+                        return response_data, data[header_len + data_len + 2:]
+                    elif status_hex == '6A89':
+                        print(f"M3Y-W Status: FAILURE (6A89)")
+                        return response_data, data[header_len + data_len + 2:]
+
+                return response_data, data[header_len + data_len + 2:]
         return None, b''
 
     # Command functions for M3YW that directly create the command and send
+    def cmd_enable_configuration(self):
+        """Enable configuration mode - required before sending config commands"""
+        command = b'S_CMD_0001'
+        return self.send_and_parse(self.create_tx(command))
+
     def cmd_get_sw_version(self):
+        # Try enabling configuration first
+        self.cmd_enable_configuration()
         command = b'T_OUT_CVER'
         return self.send_and_parse(self.create_tx(command))
+
+    def cmd_get_hw_version(self):
+        """M3Y-W does not have a separate hardware version command."""
+        raise NotSupportedError("M3Y-W scanner does not support hardware version query")
+
+    def cmd_get_sw_year(self):
+        """M3Y-W does not have a separate software year command."""
+        raise NotSupportedError("M3Y-W scanner does not support software year query")
+
+    def cmd_get_settings(self):
+        """M3Y-W does not have a single 'get settings' command like GM65."""
+        raise NotSupportedError("M3Y-W scanner does not support bulk settings query")
+
+    def cmd_set_settings(self, value: bytes = b''):
+        """M3Y-W does not have a single 'set settings' command like GM65."""
+        raise NotSupportedError("M3Y-W scanner does not support bulk settings modification")
+
+    def cmd_save_settings(self):
+        """M3Y-W does not require explicit settings save like GM65."""
+        raise NotSupportedError("M3Y-W scanner does not support/require explicit settings save")
 
     def cmd_set_continuous_mode(self):
         command = b'S_CMD_020E'
@@ -122,7 +164,7 @@ class M3YWScanner(BaseScanner):
 
     def cmd_set_baudrate(self, value: int = 9600):
         command = b'S_CMD_H3BR' + str(value).encode()
-        reply, extra = self.send_and_parse(self.create_tx(command, value))
+        reply, extra = self.send_and_parse(self.create_tx(command))
         self.serial_port.baudrate = value
         # Test to see if everything worked...
         reply, extra = self.cmd_get_sw_version()

@@ -6,6 +6,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from gm65_scanner import GM65Scanner
+from m3yw_scanner import M3YWScanner
 
 
 @pytest.fixture
@@ -24,3 +25,9 @@ def real_serial_port():
 def real_gm65_scanner(real_serial_port):
     """Create a GM65Scanner instance with real serial port."""
     return GM65Scanner(real_serial_port)
+
+
+@pytest.fixture
+def real_m3yw_scanner(real_serial_port):
+    """Create a M3YWScanner instance with real serial port."""
+    return M3YWScanner(real_serial_port)
