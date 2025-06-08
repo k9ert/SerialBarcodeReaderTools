@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from base_scanner import BaseScanner
 from gm65_scanner import GM65Scanner
 from m3yw_scanner import M3YWScanner
+from base_scanner import NotSupportedError
 from utils import common_baud_rates
 
 
@@ -80,82 +81,88 @@ def main():
         scanner = detect_scanner(ser)
 
     scan_duration = 1
-    if args.hw_version:
-        reply, extra = scanner.cmd_get_hw_version()
-    elif args.sw_version:
-        reply, extra = scanner.cmd_get_sw_version()
-    elif args.sw_year:
-        reply, extra = scanner.cmd_get_sw_year()
-    elif args.get_settings:
-        reply, extra = scanner.cmd_get_settings()
-    elif args.set_settings:
-        reply, extra = scanner.cmd_set_settings(args.set_settings.encode())
-    elif args.get_address:
-        reply, extra = scanner.cmd_get_address(args.get_address.encode())
-    elif args.set_address:
-        reply, extra = scanner.cmd_set_address(args.set_address[0].encode(), args.set_address[1].encode())
-    elif args.save_address:
-        reply, extra = scanner.cmd_save_address(args.save_address.encode())
-    elif args.save_settings:
-        reply, extra = scanner.cmd_save_settings()
-    elif args.set_illumination is not None:
-        print("Setting Illumination")
-        reply, extra = scanner.cmd_set_illumination(args.set_illumination)
-    elif args.set_aimer is not None:
-        print("Setting Aimer")
-        reply, extra = scanner.cmd_set_aimer(args.set_aimer)
-    elif args.set_beeper is not None:
-        print("Setting Beeper")
-        reply, extra = scanner.cmd_set_beeper(args.set_beeper)
-    elif args.set_read_interval is not None:
-        print("Setting Read Interval")
-        reply, extra = scanner.cmd_set_read_interval(args.set_read_interval)
-    elif args.set_same_barcode_delay is not None:
-        print("Setting Same Barcode Delay")
-        reply, extra = scanner.cmd_set_same_barcode_delay(args.set_same_barcode_delay)
-    elif args.send_raw_cmd:
-        print("Sending raw command")
-        reply, extra = scanner.cmd_send_raw(args.send_raw_cmd)
-    elif args.set_continuous_mode:
-        print("Setting Continuous Mode")
-        reply, extra = scanner.cmd_set_continuous_mode()
-    elif args.set_command_mode:
-        print("Setting Command Mode")
-        reply, extra = scanner.cmd_set_command_mode()
-    elif args.set_baudrate is not None:
-        print("Setting Baud Rate")
-        reply, extra = scanner.cmd_set_baudrate(int(args.set_baudrate))
-        if reply:
-            print("Baudrate Changed Successfully!")
-        else:
-            print("Baudrate Change Failed...")
-    elif args.test_baudrates:
-        scanner.test_baudrates()
-    elif args.get_safe_for_binary_qr:
-        safe = scanner.get_safe_for_binaryqr()
-        if safe is not None:
-            if safe:
-                print("Good News: Safe to use")
+
+    try:
+        if args.hw_version:
+            reply, extra = scanner.cmd_get_hw_version()
+        elif args.sw_version:
+            reply, extra = scanner.cmd_get_sw_version()
+        elif args.sw_year:
+            reply, extra = scanner.cmd_get_sw_year()
+        elif args.get_settings:
+            reply, extra = scanner.cmd_get_settings()
+        elif args.set_settings:
+            reply, extra = scanner.cmd_set_settings(args.set_settings.encode())
+        elif args.get_address:
+            reply, extra = scanner.cmd_get_address(args.get_address.encode())
+        elif args.set_address:
+            reply, extra = scanner.cmd_set_address(args.set_address[0].encode(), args.set_address[1].encode())
+        elif args.save_address:
+            reply, extra = scanner.cmd_save_address(args.save_address.encode())
+        elif args.save_settings:
+            reply, extra = scanner.cmd_save_settings()
+        elif args.set_illumination is not None:
+            print("Setting Illumination")
+            reply, extra = scanner.cmd_set_illumination(args.set_illumination)
+        elif args.set_aimer is not None:
+            print("Setting Aimer")
+            reply, extra = scanner.cmd_set_aimer(args.set_aimer)
+        elif args.set_beeper is not None:
+            print("Setting Beeper")
+            reply, extra = scanner.cmd_set_beeper(args.set_beeper)
+        elif args.set_read_interval is not None:
+            print("Setting Read Interval")
+            reply, extra = scanner.cmd_set_read_interval(args.set_read_interval)
+        elif args.set_same_barcode_delay is not None:
+            print("Setting Same Barcode Delay")
+            reply, extra = scanner.cmd_set_same_barcode_delay(args.set_same_barcode_delay)
+        elif args.send_raw_cmd:
+            print("Sending raw command")
+            reply, extra = scanner.cmd_send_raw(args.send_raw_cmd)
+        elif args.set_continuous_mode:
+            print("Setting Continuous Mode")
+            reply, extra = scanner.cmd_set_continuous_mode()
+        elif args.set_command_mode:
+            print("Setting Command Mode")
+            reply, extra = scanner.cmd_set_command_mode()
+        elif args.set_baudrate is not None:
+            print("Setting Baud Rate")
+            reply, extra = scanner.cmd_set_baudrate(int(args.set_baudrate))
+            if reply:
+                print("Baudrate Changed Successfully!")
             else:
-                print("WARNING: Known to be unsafe for binary QR scanning")
+                print("Baudrate Change Failed...")
+        elif args.test_baudrates:
+            scanner.test_baudrates()
+        elif args.get_safe_for_binary_qr:
+            safe = scanner.get_safe_for_binaryqr()
+            if safe is not None:
+                if safe:
+                    print("Good News: Safe to use")
+                else:
+                    print("WARNING: Known to be unsafe for binary QR scanning")
+            else:
+                print("Unsure... Unable to match software version as known-good or known-bad...")
         else:
-            print("Unsure... Unable to match software version as known-good or known-bad...")
+            print("Setting Continuous Mode")
+            reply, extra = scanner.cmd_set_continuous_mode()
 
-    else:
-        print("Setting Continuous Mode")
-        reply, extra = scanner.cmd_set_continuous_mode()
+            print("Scanning for 10 Seconds")
+            scan_duration = 10
+            # Keep scanning
+            start = time.time()
+            rx_data = b''
+            while (time.time() - start) <= scan_duration:
+                rx_data += ser.read(1024)
 
-        print("Scanning for 10 Seconds")
-        scan_duration = 10
-        # Keep scanning
-        start = time.time()
-        rx_data = b''
-        while (time.time() - start) <= scan_duration:
-            rx_data += ser.read(1024)
+            print("Setting Command Mode")
+            reply, extra = scanner.cmd_set_command_mode()
+            print("Got:", rx_data, "AsHex:", binascii.hexlify(rx_data))
 
-        print("Setting Command Mode")
-        reply, extra = scanner.cmd_set_command_mode()
-        print("Got:", rx_data, "AsHex:", binascii.hexlify(rx_data))
+    except NotSupportedError as e:
+        print(f"❌ Not Supported: {e}")
+        print(f"This command is not available for {scanner.__class__.__name__} scanners.")
+        print("See the README.md for a complete command support matrix.")
 
     ser.close()
 
